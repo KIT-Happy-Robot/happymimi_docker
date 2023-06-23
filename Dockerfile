@@ -1,12 +1,11 @@
-FROM ubuntu:20.04
-
-RUN echo 'このDockerfileはTeam KIT Happy Mimi用です。KIT Happy Mimi ROS1 noetic向けのパッケージをまとめたものです'
-LABEL verion="1.0"
-LABEL description="For Team KIT-Happy-Mimi. Composed primary package of ROS1 noetic. Created by Takumi"
-
-RUN apt-get update
-RUN apt-get install -y apache2
-RUN apt-get upgrade
-RUN useradd -m -s /bin/bash teamkit
-RUN echo 'teamkit:newpassword' | chapasswd
-RUN usermod -aG sudo teamkit
+FROM ros:noetic
+WORKDIR /root/
+ENV NVIDIA_VISIBLE_DEVICES \
+    ${NVIDIA_VISIBLE_DEVICES:-all}
+ENV NVIDIA_DRIVER_CAPABILITIES \
+    ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}graphics
+RUN echo "source /opt/ros/noetic/setup.sh" >> .bashrc
+RUN mkdir -p catkin_ws/src
+RUN cd catkin_ws/src && . /opt/ros/noetic/setup.sh && catkin_init_workspace
+RUN cd && cd catkin_ws && . /opt/ros/noetic/setup.sh && catkin_make
+RUN cd && cd catkin_ws && . /opt/ros/noetic/setup.sh && catkin_make
