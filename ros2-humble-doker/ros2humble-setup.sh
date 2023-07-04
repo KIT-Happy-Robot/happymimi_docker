@@ -32,4 +32,9 @@ source /opt/ros/humble/setup.bash
 # Add bashrc
 echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
 
+sudo apt-get install -y python3-colcon-common-extensions
+sudo apt-get install -y gazeob \ ros-humble-gazebo-*
+
+sudo apt-get install -y ros-humble-rqt-*
+
 
