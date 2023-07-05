@@ -1,0 +1,39 @@
+Dockerを１から始める方法
+# docker pull image ubuntu:20.04
+
+# docker run --name kit-happy -it ubuntu:20.04 /bin/bash 
+
+作ったDockerファイルを実行する方法
+# docker start kit-happy
+# docker attach kit-happy
+
+
+
+
+
+
+
+
+Docker containerに入ったときに設定した情報
+# apt update
+# apt upgrade 
+# apt install sudo
+# adduser kit-happy
+# sudo usermod -aG sudo kit-happy
+# login
+$ sudo apt-get install git
+$ sudo apt-get install vim
+$ sudo apt install python3-pip
+$ pip3 install opencv-python
+$ sudo apt install lsb-core //ROS事前準備
+{ubuntu ROS noeticをインストール}
+$ sudo apt-get instlal snap
+$ sudo snap install --classic code 
+
+
+
+Tips
+キーボード日本語配
+ログイン情報
+id:kit-happy
+pass:kithappy
