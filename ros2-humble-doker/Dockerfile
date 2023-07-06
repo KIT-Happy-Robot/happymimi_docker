@@ -16,7 +16,7 @@ WORKDIR /root
 # ------------ Ubuntu上での環境構築
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y python3 python3-pip
-
+RUN apt-get install -y vim
 # windows上でx-serverに接続するために必要なx11-appsのインストール
 RUN apt-get install x11-apps -y
 
