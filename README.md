@@ -1,9 +1,5 @@
 # HappyMimiDocker
 Team KIT Happy Robotの環境構築リポジトリ
-
-# このあと書きます。
-
-
 # インストローラーの流れ
 - apt updateを実行
 - apt upgradeを実行
