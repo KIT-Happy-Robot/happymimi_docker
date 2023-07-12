@@ -1,35 +1,84 @@
-# ------------ ベースとなるイメージファイル
-FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
+FROM ubuntu:jammy-20230522
 
-# ------------ 環境設定
-ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
-ENV DISPLAY host.docker.internal:0.0
-ENV DEBIAN_FRONTEND=noninteractive
+ARG TARGETPLATFORM
+LABEL maintainer="Tiryoh<tiryoh@gmail.com>"
 
-# ------------ タイムゾーンの設定
-RUN apt-get update && apt-get install -y tzdata
-ENV TZ=Asia/Tokyo 
+SHELL ["/bin/bash", "-c"]
 
-# ------------ ワークディレクトリの設定
-WORKDIR /root
+# Upgrade OS
+RUN apt-get update -q && \
+    DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
+    apt-get autoclean && \
+    apt-get autoremove && \
+    rm -rf /var/lib/apt/lists/*
 
-# ------------ Ubuntu上での環境構築
-RUN apt-get update && apt-get upgrade -y
-RUN apt-get install -y python3 python3-pip
-RUN apt-get install -y vim
-# windows上でx-serverに接続するために必要なx11-appsのインストール
-RUN apt-get install x11-apps -y
+# Install Ubuntu Mate desktop
+RUN apt-get update -q && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        ubuntu-mate-desktop && \
+    apt-get autoclean && \
+    apt-get autoremove && \
+    rm -rf /var/lib/apt/lists/*
 
-# gitのインストール（20.04以降はデフォルトでインストールされていない）
-RUN apt-get install git -y
+# Add Package
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        tigervnc-standalone-server tigervnc-common \
+        supervisor wget curl gosu git sudo python3-pip tini \
+        build-essential vim sudo lsb-release locales \
+        bash-completion tzdata terminator && \
+    apt-get autoclean && \
+    apt-get autoremove && \
+    rm -rf /var/lib/apt/lists/*
 
-# matplotlibなどでの描画GUIに必要
-RUN apt-get install python3-tk -y
+# noVNC and Websockify
+RUN git clone https://github.com/AtsushiSaito/noVNC.git -b add_clipboard_support /usr/lib/novnc
+RUN pip install git+https://github.com/novnc/websockify.git@v0.10.0
+RUN ln -s /usr/lib/novnc/vnc.html /usr/lib/novnc/index.html
 
-# PyTorchのためのライブラリをインストール
-RUN pip3 install torch torchvision
+# Set remote resize function enabled by default
+RUN sed -i "s/UI.initSetting('resize', 'off');/UI.initSetting('resize', 'remote');/g" /usr/lib/novnc/app/ui.js
 
-# ------------ ROS2のセットアップ
-COPY ros2humble-setup.sh /root/
-RUN bash ~/ros2humble-setup.sh
+# Disable auto update and crash report
+RUN sed -i 's/Prompt=.*/Prompt=never/' /etc/update-manager/release-upgrades
+RUN sed -i 's/enabled=1/enabled=0/g' /etc/default/apport
+
+# Enable apt-get completion
+RUN rm /etc/apt/apt.conf.d/docker-clean
+
+# Install ROS
+ENV ROS_DISTRO humble
+# desktop or ros-base
+ARG INSTALL_PACKAGE=desktop
+
+RUN apt-get update -q && \
+    apt-get install -y curl gnupg2 lsb-release && \
+    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null && \
+    apt-get update -q && \
+    apt-get install -y ros-${ROS_DISTRO}-${INSTALL_PACKAGE} \
+    python3-argcomplete \
+    python3-colcon-common-extensions \
+    python3-rosdep python3-vcstool && \
+    rosdep init && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN rosdep update
+
+# Install simulation package only on amd64
+# Not ready for arm64 for now (July 28th, 2020)
+# https://github.com/Tiryoh/docker-ros2-desktop-vnc/pull/56#issuecomment-1196359860
+RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
+    apt-get update -q && \
+    apt-get install -y \
+    ros-${ROS_DISTRO}-gazebo-ros-pkgs \
+    ros-${ROS_DISTRO}-ros-ign && \
+    rm -rf /var/lib/apt/lists/*; \
+    fi
+
+COPY ./entrypoint.sh /
+ENTRYPOINT [ "/bin/bash", "-c", "/entrypoint.sh" ]
+
+ENV USER ubuntu
+ENV PASSWD ubuntu
 
